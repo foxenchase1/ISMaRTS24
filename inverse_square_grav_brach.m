@@ -1,0 +1,146 @@
+%% Inverse Square Attractive Gravity Brachistochrone (ISAGB)
+%
+% Using equations from the paper Isochrones and Brachistochrones by 
+% Garry J. Tee from the University of Auckland
+%
+% He found that for attractive inverse square gravity, the integrals for 
+% angle, arc length, and time (all dependent on radius and 
+% the parameter R, the apsidial radius) are
+%
+% \Theta(r,R) = sqrt(\frac{R^3}{1-R}) \int_r^1 \frac{1-x}{x\sqrt{(1-x)(x-R)
+% [x^2+Rx+\frac{R^2}{1-R}]}} dx
+%
+% S(r,R) = \int_r^1 \frac{x^2}{\sqrt(x(x-R)[x^2+Rx+\frac{R^2}{1-R}]} dx
+%
+% T(r,R) = \int_r^1 \frac{x^2}{\sqrt{2(1-x)(x-R)[x^2+Rx+\frac{R^2}{1-R}]}}
+% dx
+%
+% Note that the upper bound of some the integrals is 1, as he used 1 as the
+% starting radius and then descended to some apsidial radius R and allowed
+% the path to return to 1 (since the path is symmetric about the apse). 
+% In this case we are interested in specifying a maximum radius 
+% from the center of our attracting body and then allowing
+% the curve to follow to the minimum radius Rmin and no further. 
+
+close all
+clear
+clc
+
+% Set up Rmax, Rmin, and step size with inputs
+
+Rmax_in = input('Specify Rmax.   ');
+Rmax_check = isempty(Rmax_in);
+if Rmax_check == 1
+    disp('ERROR! You must specify an Rmax value.')
+else
+    disp(Rmax_in)
+    Rmax = Rmax_in/Rmax_in;
+    Rmin_in = input('Specify Rmin.   ');
+    Rmin_check = isempty(Rmin_in);
+    if Rmin_check == 1
+            disp('ERROR! You must specify an Rmin value.')
+    elseif Rmax_in < Rmin_in
+            disp('ERROR! You must have Rmax >= Rmin.')
+    else
+        disp(Rmin_in)
+        Rmin = Rmin_in/Rmax_in;    
+        Theta_min = input('Specify the radial coordinate for Rmin. Use radians between 0 and 2*pi/3.    ');
+        Theta_min_check = isempty(Theta_min);
+        if Theta_min_check == 1
+            disp('ERROR! You must specify a radial coordinate for the endpoint.')
+        elseif Theta_min > (2*pi/3)+eps
+            disp('ERROR! The radial component must be less than 2*pi/3.')
+            else
+                h = input('Specify step size for radius.   ');
+                h_check = isempty(h);
+                if h_check == 1
+                    disp('ERROR! You must specify a step size.')
+                else   
+ 
+
+        % --- Computations ---
+
+        % Finding R_apse (apsidial radius of solution)
+
+        R_apse_root_func = @(R) gamma_R_fun(Rmax, Rmin, Theta_min, R)-Theta_min;
+        R1 = 0.9*Rmin;
+        R2 = 0.7*Rmin;
+        tol = 1e-6;
+        R_apse = secant_root(R_apse_root_func,R1,R2,tol);
+        R_apse_str = num2str(R_apse);
+        secant_mesg = append('This root, ',R_apse_str,', is the apsidial radius R of the path.');
+        disp(secant_mesg)
+        
+        % Create vector of radius values
+
+        r_mem1 = R_apse:h:Rmax;
+        r_mem1 = flip(r_mem1);
+        r_mem2 = R_apse:h:Rmin;
+        r_mem = [r_mem1,r_mem2];
+
+        %Rmax_lower = Rmax-h;
+        %r = R_apse:h:Rmax_lower;
+        r1 = r_mem1;
+        r2 = r_mem2;
+        
+        % Compute angle data
+
+        angle_data1 = isg_ang_integ(r1,Rmax,R_apse);
+        %angle_data = [0, angle_data];
+        Aps_Theta = angle_data1(end);
+        angle_data_2 = 2*Aps_Theta*ones(1,length(r2))-isg_ang_integ(r2,Rmax,R_apse);
+        angle_data = [angle_data1,angle_data_2];
+
+        % Compute time data
+
+        time_data1 = isg_t_integ(r1,Rmax,R_apse);
+        %time_data = [0, time_data];
+        Aps_Time = time_data1(end);
+        time_data_2 = 2*Aps_Time*ones(1,length(r2))-isg_t_integ(r2,Rmax,R_apse);
+        time_data = [time_data1,time_data_2];
+
+        % Compute arc length data
+
+        arc_data1 = isg_arc_integ(r1,Rmax,R_apse);
+        %arc_data = [0, arc_data];
+        Aps_Arc = arc_data1(end);
+        arc_data_2 = 2*Aps_Arc*ones(1,length(r2))-isg_arc_integ(r2,Rmax,R_apse);
+        arc_data = [arc_data1,arc_data_2];
+
+        % --- Generate Plots ---
+
+        % Curve Plot
+        figure(1)
+        [x, y] = pol2cart(angle_data,r_mem);
+        plot(y,x)
+        title('Scaled Brachistochrone Converted to Cartesian Coords.')
+
+        figure(2)
+        polarplot(angle_data,r_mem)
+        title('Scaled Brachistochrone in Polar Coordinates')
+
+        % Angle vs. Radius
+        figure(3)
+        plot(angle_data, r_mem, 'r')
+        title('Radius vs. Angle')
+        ylabel('Radius')
+        xlabel('Angle [radians]')
+        
+        % Time vs. Radius 
+        figure(4)
+        plot(time_data, r_mem,'b')
+        title('Radius vs. Time')
+        ylabel('Radius')
+        xlabel('Time')
+
+        % Arc Length vs. Radius
+        figure(5)
+        plot(arc_data, r_mem, 'm')
+        title('Radius vs. Arc Length')
+        ylabel('Radius')
+        xlabel('Arc Length')
+
+                end
+       end
+   end
+end

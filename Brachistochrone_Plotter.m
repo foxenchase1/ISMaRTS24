@@ -1,0 +1,56 @@
+%% Brachistochrone and Linear Function Plotter
+% Chase Foxen
+% 04/21/2024
+
+% This program plots both a brachistochrone and a line to the point (b,-1)
+% given some b value and a numerical step size, h. This is intended to
+% serve a way of visualizing the brachistochrones behavior as b -> \infty
+
+clc
+clear
+close all 
+
+b = input('Choose your b value:    ');
+h = input('Choose an x step size:    ');
+h1 = input('Choose a theta step size:   ');
+% modulator = input('Provide a root finding modulator:   ');
+
+x = b;
+y = 1;
+x2 = 0:h:b;
+
+% Brachistochrone Parameterization Process
+func1 = @(x,t) (t-sin(t))/(1-cos(t))-x;
+func2 = @(t) func1(x,t);
+func3 = @(a,t) a*t-sin(t);
+func4 = @(a,t) a-a*cos(t);
+
+tol = 1.0e-7;
+syms var1
+root_guess_f1 = 1/(1-cos(var1))-x;
+root_guess1 = solve(root_guess_f1);
+root_guess1 = 2*pi-eval(root_guess1(end));
+root_guess_f2 = 1/(1-(1+10/x)*cos(var1))-x;
+root_guess2 = solve(root_guess_f2);
+root_guess2 = 2*pi-eval(root_guess2(1,end));
+t_last = secant_root(func2,root_guess1,root_guess2,tol);
+t_fin_vector = 0:h1:t_last;
+a = x/(t_last-sin(t_last));
+
+x_param = @(a,t) a*t-a*sin(t);
+y_param = @(a,t) a-a*cos(t);
+x_interm_f = @(t) x_param(a,t);
+y_interm_f = @(t) y_param(a,t);
+x_brach = x_interm_f(t_fin_vector);
+y_brach = y_interm_f(t_fin_vector);
+
+% Line Function
+linear_func = @(b,x) (-1/b)*x;
+line = linear_func(b,x2);
+
+% Plotting Curves
+figure(1)
+plot(x2,line,'b', x_brach,-y_brach,'r'); hold on
+title('Brachistochrone and Line to (b,-1)')
+xlabel('x')
+ylabel('y')
